@@ -543,6 +543,14 @@
             if (!tag && debug) console.log("Unknown tag: " + file.getUint16(entryOffset, !bigEnd));
             tags[tag] = readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd);
         }
+        // begin patch MM 2015-01-18, following http://code.flickr.net/2012/06/01/parsing-exif-client-side-using-javascript-2/
+        // console.log("tags.ExifIFDPointer", tags.ExifIFDPointer);
+        if (tags.ExifIFDPointer) {
+            entryOffset = dirStart + i*12 + 2;
+            tags.IFD1Offset = file.getUint32(entryOffset, !bigEnd);
+            // console.log("tags.IFD1Offset", tags.IFD1Offset);
+        }
+        // end patch
         return tags;
     }
 
@@ -656,7 +664,7 @@
 
         var bigEnd,
             tags, tag,
-            exifData, gpsData,
+            exifData, gpsData, IFD1Tags,
             tiffOffset = start + 6;
 
         // test for TIFF validity and endianness
@@ -736,6 +744,29 @@
                 tags[tag] = gpsData[tag];
             }
         }
+
+        // begin patch MM following http://code.flickr.net/2012/06/01/parsing-exif-client-side-using-javascript-2/ */
+        if(tags.IFD1Offset) {
+            IFD1Tags = readTags(file, tiffOffset, tags.IFD1Offset + tiffOffset, TiffTags, bigEnd);
+            if(IFD1Tags.JPEGInterchangeFormat) {
+                readThumbnailData(file, IFD1Tags.JPEGInterchangeFormat, IFD1Tags.JPEGInterchangeFormatLength, tiffOffset, bigEnd);
+            }
+        }
+         
+        function readThumbnailData(dataview, thumbStart, thumbLength, tiffOffset, bigEnd) {
+            if (file.length < thumbStart+tiffOffset+thumbLength) {
+                return;
+            }
+            var data, di;
+            var hexData = new Array();
+            for (var i=0; i<thumbLength; i++) {
+                di = file.getUint8(thumbStart+tiffOffset+i);
+                hexData[i] = (di < 16) ? "0"+di.toString(16) : di.toString(16);
+            }
+            tags.ThumbnailURL = "data:image/jpeg,%"+hexData.join('%');
+            // document.querySelector("img.debug").setAttribute("src", tags.ThumbnailURL);
+        }
+        // end patch
 
         return tags;
     }
