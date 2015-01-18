@@ -543,14 +543,11 @@
             if (!tag && debug) console.log("Unknown tag: " + file.getUint16(entryOffset, !bigEnd));
             tags[tag] = readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd);
         }
-        // begin patch MM 2015-01-18, following http://code.flickr.net/2012/06/01/parsing-exif-client-side-using-javascript-2/
-        // console.log("tags.ExifIFDPointer", tags.ExifIFDPointer);
+        // check for thumbnail in IFD1, following http://code.flickr.net/2012/06/01/parsing-exif-client-side-using-javascript-2/
         if (tags.ExifIFDPointer) {
             entryOffset = dirStart + i*12 + 2;
             tags.IFD1Offset = file.getUint32(entryOffset, !bigEnd);
-            // console.log("tags.IFD1Offset", tags.IFD1Offset);
         }
-        // end patch
         return tags;
     }
 
@@ -745,7 +742,7 @@
             }
         }
 
-        // begin patch MM following http://code.flickr.net/2012/06/01/parsing-exif-client-side-using-javascript-2/ */
+        // following http://code.flickr.net/2012/06/01/parsing-exif-client-side-using-javascript-2/
         if(tags.IFD1Offset) {
             IFD1Tags = readTags(file, tiffOffset, tags.IFD1Offset + tiffOffset, TiffTags, bigEnd);
             if(IFD1Tags.JPEGInterchangeFormat) {
@@ -764,9 +761,7 @@
                 hexData[i] = (di < 16) ? "0"+di.toString(16) : di.toString(16);
             }
             tags.ThumbnailURL = "data:image/jpeg,%"+hexData.join('%');
-            // document.querySelector("img.debug").setAttribute("src", tags.ThumbnailURL);
         }
-        // end patch
 
         return tags;
     }
